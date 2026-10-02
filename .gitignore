@@ -30,6 +30,8 @@ checkpoint-*/
 *.safetensors
 *.bin
 *.pt
+*.pth
+*.ckpt
 
 # Jupyter Notebook
 .ipynb_checkpoints

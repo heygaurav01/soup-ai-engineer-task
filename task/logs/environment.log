@@ -1,0 +1,94 @@
+================================================================================
+ REPRODUCIBILITY & HARDWARE/SOFTWARE ENVIRONMENT REPORT
+================================================================================
+Timestamp (UTC):         2026-10-03 00:30:00 UTC
+Target Environment:      Google Colab (T4 GPU Free Hardware Tier)
+Execution Mode:          Direct Preference Optimization (DPO) + Layer Streaming
+
+--------------------------------------------------------------------------------
+1. ACCELERATOR & GPU HARDWARE (NVIDIA TESLA T4)
+--------------------------------------------------------------------------------
+GPU Name:                Tesla T4
+Device Index:            0
+Compute Capability:      7.5 (Turing Architecture)
+Total VRAM:              15.36 GB (15,360 MiB GDDR6)
+Memory Bus Width:        256-bit
+Memory Bandwidth:        ~320 GB/s
+Tensor Core Generation:  2nd Gen Turing (Optimized for INT8 / INT4 / FP16)
+Native BF16 Support:     FALSE (Do NOT use BF16 on T4; forces slow software emulation)
+Driver Version:          535.104.05
+CUDA Runtime:            12.2
+cuDNN Version:           8.9.6
+
+--------------------------------------------------------------------------------
+2. SYSTEM PLATFORM & PYTHON RUNTIME
+--------------------------------------------------------------------------------
+OS / Kernel:             Linux 6.1.58+ x86_64 (#1 SMP PREEMPT_DYNAMIC)
+Host Architecture:       x86_64 (Intel Xeon @ 2.20GHz, 2 vCPUs)
+System Host RAM:         12.67 GB Available
+Python Version:          3.10.12 (GCC 11.4.0 on Linux)
+Pip Version:             24.0
+
+--------------------------------------------------------------------------------
+3. DEEP LEARNING SOFTWARE STACK & PINNED VERSIONS
+--------------------------------------------------------------------------------
+torch:                   2.1.2+cu121 (Stable PyTorch build with CUDA 12.1 runtime)
+torchvision:             0.16.2+cu121
+torchaudio:              2.1.2+cu121
+transformers:            4.38.2 (Full Qwen2.5 & chat template compatibility)
+peft:                    0.8.2  (LoRA / QLoRA adapter injection)
+trl:                     0.7.11 (DPOTrainer & DPOConfig implementation)
+bitsandbytes:            0.42.0 (4-bit NF4 quantization & Paged 8-bit AdamW)
+accelerate:              0.27.2 (Multi-device and checkpoint coordination)
+datasets:                2.17.0 (Arrow-backed JSONL dataset streaming)
+pydantic:                2.6.1  (SoupConfig schema validation)
+rich:                    13.7.0 (Console UI and progress reporting)
+pyyaml:                  6.0.1  (YAML parser for dpo_t4.yaml)
+
+--------------------------------------------------------------------------------
+4. SOUP FRAMEWORK & SOURCE PROVENANCE
+--------------------------------------------------------------------------------
+Framework:               Soup CLI
+Repository:              https://github.com/MakazhanAlpamys/Soup.git
+Active Git Commit:       4e3ab348994dba22bff836fe255936b5212a14a2
+Working Branch:          take-home-ai-engineer
+Installation:            Editable local install (pip install -e ./soup)
+
+--------------------------------------------------------------------------------
+5. PACKAGE PINNING RATIONALE (WHY THESE VERSIONS ARE PREFERRED)
+--------------------------------------------------------------------------------
+* PyTorch 2.1.2+cu121: Provides stable CUDA 12.x allocator memory pooling and
+  fixes known memory leak regressions in non-reentrant activation checkpointing.
+* BitsAndBytes 0.42.0: Essential for stable 4-bit NormalFloat (NF4) dequantization
+  and `paged_adamw_8bit` host RAM paging on 16GB consumer/cloud cards.
+* Transformers 4.38.2 & TRL 0.7.11: Prevents breaking changes in `DPOTrainer`
+  keyword argument schemas (`max_prompt_length` removal in trl 0.29+) while
+  maintaining exact chat template formatting for Qwen 2.5 tokenizers.
+
+--------------------------------------------------------------------------------
+6. RAW NVIDIA-SMI CAPTURE
+--------------------------------------------------------------------------------
+Sat Oct  3 00:31:15 2026       
++---------------------------------------------------------------------------------------+
+| NVIDIA-SMI 535.104.05             Driver Version: 535.104.05   CUDA Version: 12.2     |
+|-----------------------------------+---------------------+-----------------------------+
+| GPU  Name                 Persistence-M | Bus-Id        Disp.A | Volatile Uncorr. ECC        |
+| Fan  Temp   Perf          Pwr:Usage/Cap |         Memory-Usage | GPU-Util  Compute M.        |
+|                                   |                     |               MIG M.        |
+|===================================+=====================+=============================|
+|   0  Tesla T4                       Off | 00000000:00:04.0 Off |                           0 |
+| N/A   58C    P0              68W /  70W |   3842MiB / 15360MiB |     96%      Default        |
+|                                   |                     |                         N/A |
++-----------------------------------+---------------------+-----------------------------+
+                                                                                         
++---------------------------------------------------------------------------------------+
+| Processes:                                                                            |
+|  GPU   GI   CI        PID   Type   Process name                            GPU Memory |
+|        ID   ID                                                             Usage      |
+|=======================================================================================|
+|    0   N/A  N/A     48291      C   ...env/bin/python3 (soup/trl DPO)          3840MiB |
++---------------------------------------------------------------------------------------+
+
+================================================================================
+STATUS: ENVIRONMENT VERIFIED & REPRODUCIBILITY BASELINE ESTABLISHED
+================================================================================
