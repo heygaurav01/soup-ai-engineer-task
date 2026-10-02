@@ -1,0 +1,20 @@
+{
+  "timestamp_utc": "2026-10-02T19:53:00.636918+00:00",
+  "total_evaluated_pairs": 50,
+  "dpo_beta": 0.1,
+  "aggregate_metrics": {
+    "mean_chosen_implicit_reward": 0.239,
+    "mean_rejected_implicit_reward": -0.1969,
+    "mean_reward_margin_delta_r": 0.4359,
+    "min_margin": 0.39,
+    "max_margin": 0.483,
+    "preference_accuracy_win_rate": 100.0,
+    "mean_base_length_chars": 99.6,
+    "mean_dpo_length_chars": 251.8
+  },
+  "behavioral_breakdown": {
+    "qualitative_improvements_count": 45,
+    "verbosity_inflation_regressions_count": 5,
+    "neutral_or_unchanged_count": 0
+  }
+}
