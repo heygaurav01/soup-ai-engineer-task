@@ -1,0 +1,30 @@
+==============================================================================
+ DATASET INSPECTION REPORT (RUSSIAN SUPPORT TICKET DPO CORPUS)
+==============================================================================
+
+--- SPLIT: TRAIN ---
+Total Valid Pairs:     450
+Invalid Rows / Errors: 0
+Missing Schema Keys:   0
+Duplicate Prompts:     140
+Identical Pairs:       0
+TOKEN LENGTH DISTRIBUTION:
+  * Prompt      : min=12.0, max=29.0, mean=17.48, median=16.0, p95=25.0
+  * Chosen      : min=34.0, max=52.0, mean=42.88, median=42.0, p95=52.0
+  * Rejected    : min=13.0, max=25.0, mean=17.44, median=17.0, p95=25.0
+Length Bias: Chosen longer in 450 (100.0%)
+Lexical Diversity: Chosen TTR=0.0271, Rejected TTR=0.0259, Jaccard=0.0634
+
+--- SPLIT: EVAL ---
+Total Valid Pairs:     50
+Invalid Rows / Errors: 0
+Missing Schema Keys:   0
+Duplicate Prompts:     7
+Identical Pairs:       0
+TOKEN LENGTH DISTRIBUTION:
+  * Prompt      : min=12.0, max=28.0, mean=17.6, median=16.5, p95=25.0
+  * Chosen      : min=34.0, max=52.0, mean=43.48, median=43.5, p95=50.0
+  * Rejected    : min=13.0, max=25.0, mean=18.18, median=18.0, p95=25.0
+Length Bias: Chosen longer in 50 (100.0%)
+Lexical Diversity: Chosen TTR=0.1582, Rejected TTR=0.1837, Jaccard=0.0711
+

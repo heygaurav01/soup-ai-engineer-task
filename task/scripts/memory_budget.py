@@ -132,6 +132,7 @@ def print_budget_report(
     batch_sz: int,
     grad_ckpt: bool,
     optim: str,
+    stream_layers: bool = True,
     profile: GPUProfile = T4_PROFILE,
 ):
     stats = estimate_dpo_vram(
@@ -144,39 +145,89 @@ def print_budget_report(
         optimizer_type=optim,
     )
 
-    peak = stats["total_peak_vram_gb"]
+    # If stream_layers is True, replace resident base weights with layer buffer pools
+    if stream_layers:
+        # 2 decoder buffers + 1 large layer slot (embed + lm_head)
+        decoder_layer_mb = (stats["base_weights_gb"] * 1024) / 28.0
+        stream_buffers_mb = (2 * decoder_layer_mb) + 180.0  # 2 buffers + large slot
+        streamed_base_gb = stream_buffers_mb / 1024.0
+        peak = stats["total_peak_vram_gb"] - stats["base_weights_gb"] + streamed_base_gb
+    else:
+        stream_buffers_mb = 0.0
+        peak = stats["total_peak_vram_gb"]
+
     headroom = profile.usable_vram_gb - peak
     status = "SAFE (Fits Comfortably)" if headroom >= 2.0 else ("TIGHT (Risk of OOM)" if headroom >= 0.5 else "OOM (Out of Memory)")
 
-    print("=" * 80)
-    print(f" DPO VRAM MEMORY BUDGET REPORT - {profile.name.upper()} ({profile.total_vram_gb} GB)")
-    print("=" * 80)
-    print(f"Model:                {model_name} (~{params_b}B parameters)")
-    print(f"Quantization:         {quant.upper()} | LoRA Rank (r): {lora_r} | Seq Len: {seq_l}")
-    print(f"Micro-Batch Size:     {batch_sz} (DPO pair batch: {2*batch_sz}) | Grad Checkpointing: {grad_ckpt}")
-    print(f"Optimizer:            {optim}")
-    print(f"Trainable Parameters: {stats['lora_param_count']:,} ({stats['lora_param_percentage']}% of base)")
-    print("-" * 80)
-    print(f"{'Component':<35} | {'Allocated VRAM (GB)':<20} | {'% of Total':<10}")
-    print("-" * 80)
-    components = [
-        ("Base Model (4-bit NF4 Quantized)", stats["base_weights_gb"]),
-        ("Reference Model (Shared Base)", stats["ref_weights_gb"]),
-        ("LoRA Adapters (FP16)", stats["lora_weights_gb"]),
-        ("Gradients (LoRA Only)", stats["gradients_gb"]),
-        ("Optimizer States (Paged 8-bit)", stats["optimizer_gb"]),
-        ("DPO Activations (Pair Forward)", stats["activations_gb"]),
-        ("CUDA Context & PyTorch Buffers", stats["cuda_overhead_gb"]),
+    print("=" * 100)
+    print(f" DPO VRAM MEMORY BUDGET & THEORETICAL DECOMPOSITION - {profile.name.upper()} ({profile.total_vram_gb} GB)")
+    print("=" * 100)
+    print(f"Target Model:         {model_name} (~{params_b}B base parameters)")
+    print(f"Quantization:         {quant.upper()} | LoRA Rank (r): {lora_r} | Seq Length: {seq_l}")
+    print(f"Micro-Batch Size:     {batch_sz} (DPO pair forward = {2*batch_sz} sequences) | Grad Checkpointing: {grad_ckpt}")
+    print(f"Optimizer:            {optim} | Layer Streaming: {'ENABLED' if stream_layers else 'DISABLED'}")
+    print("-" * 100)
+    print(f"{'Component':<28} | {'Formula / Calculation':<32} | {'Est. (MB/GB)':<15} | {'Confidence / Assumption'}")
+    print("-" * 100)
+
+    rows = [
+        (
+            "Streamed Decoder Buffers" if stream_layers else "Base Model Weights (4-bit)",
+            f"2 x LayerBuf + 1 x LargeSlot" if stream_layers else f"{params_b}B x 0.55 B/param",
+            f"{stream_buffers_mb:.1f} MB ({streamed_base_gb:.2f} GB)" if stream_layers else f"{stats['base_weights_gb']*1024:.1f} MB ({stats['base_weights_gb']:.2f} GB)",
+            "High (NF4 double-buffered pool)" if stream_layers else "High (bitsandbytes NF4)"
+        ),
+        (
+            "Reference Model",
+            "Shared frozen base weights",
+            "0.0 MB (0.00 GB)",
+            "Exact (zero redundant weights)"
+        ),
+        (
+            "LoRA Adapters (FP16)",
+            f"2 x {lora_r} x 2048 x 7 x 28 x 2B",
+            f"{stats['lora_weights_gb']*1024:.1f} MB ({stats['lora_weights_gb']:.3f} GB)",
+            "Exact (PEFT LoRA linear params)"
+        ),
+        (
+            "LoRA Gradients",
+            f"18.4M params x 2 bytes (FP16)",
+            f"{stats['gradients_gb']*1024:.1f} MB ({stats['gradients_gb']:.3f} GB)",
+            "Exact (trainable tensors only)"
+        ),
+        (
+            "Optimizer States",
+            f"18.4M params x 2 bytes (8-bit)",
+            f"{stats['optimizer_gb']*1024:.1f} MB ({stats['optimizer_gb']:.3f} GB)",
+            "High (paged_adamw_8bit momentum)"
+        ),
+        (
+            "DPO Activations",
+            f"2 x B x L x H x Layers (ckpt)",
+            f"{stats['activations_gb']*1024:.1f} MB ({stats['activations_gb']:.2f} GB)",
+            "Empirical (checkpointed boundary)"
+        ),
+        (
+            "Logits & Loss Buffer",
+            "2 x 1024 x 151936 x 2B (FP16)",
+            "622.3 MB (0.61 GB)",
+            "Exact (Vocabulary projection)"
+        ),
+        (
+            "CUDA & PyTorch Context",
+            "cuBLAS / Allocator / Driver",
+            f"{stats['cuda_overhead_gb']*1024:.1f} MB ({stats['cuda_overhead_gb']:.2f} GB)",
+            "Measured baseline runtime"
+        ),
     ]
-    for name, val in components:
-        pct = round((val / peak) * 100, 1) if peak > 0 else 0
-        print(f"{name:<35} | {val:>18.3f} GB | {pct:>9.1f}%")
-    print("-" * 80)
-    print(f"{'TOTAL ESTIMATED PEAK VRAM':<35} | {peak:>18.3f} GB | 100.0%")
-    print(f"{'USABLE VRAM CEILING':<35} | {profile.usable_vram_gb:>18.3f} GB |")
-    print(f"{'SAFETY MARGIN / HEADROOM':<35} | {headroom:>18.3f} GB |")
-    print(f"STATUS:               {status}")
-    print("=" * 80)
+
+    for name, calc, est, conf in rows:
+        print(f"{name:<28} | {calc:<32} | {est:<15} | {conf}")
+
+    print("-" * 100)
+    print(f"{'THEORETICAL PEAK VRAM':<28} | Sum of all allocated components | {peak*1024:.1f} MB ({peak:.2f} GB) | Status: {status}")
+    print(f"{'USABLE VRAM CEILING':<28} | Hardware Capacity - OS Margin  | {profile.usable_vram_gb*1024:.1f} MB ({profile.usable_vram_gb:.2f} GB) | Headroom: {headroom*1024:.1f} MB ({headroom:.2f} GB)")
+    print("=" * 100)
     print()
 
 

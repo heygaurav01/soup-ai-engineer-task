@@ -1,0 +1,174 @@
+{
+  "train": {
+    "file_name": "train.jsonl",
+    "total_samples": 450,
+    "invalid_json_rows": 0,
+    "missing_key_rows": 0,
+    "duplicate_prompts": 140,
+    "identical_chosen_rejected": 0,
+    "length_bias": {
+      "chosen_longer": 450,
+      "rejected_longer": 0,
+      "equal_length": 0,
+      "chosen_longer_pct": 100.0
+    },
+    "lexical_metrics": {
+      "chosen_type_token_ratio": 0.0271,
+      "rejected_type_token_ratio": 0.0259,
+      "mean_jaccard_similarity": 0.0634
+    },
+    "token_stats": {
+      "prompt": {
+        "count": 450,
+        "min": 12.0,
+        "max": 29.0,
+        "mean": 17.48,
+        "median": 16.0,
+        "p90": 23.0,
+        "p95": 25.0
+      },
+      "chosen": {
+        "count": 450,
+        "min": 34.0,
+        "max": 52.0,
+        "mean": 42.88,
+        "median": 42.0,
+        "p90": 50.0,
+        "p95": 52.0
+      },
+      "rejected": {
+        "count": 450,
+        "min": 13.0,
+        "max": 25.0,
+        "mean": 17.44,
+        "median": 17.0,
+        "p90": 21.0,
+        "p95": 25.0
+      },
+      "total_pair_seq_length": {
+        "count": 450,
+        "min": 48.0,
+        "max": 78.0,
+        "mean": 60.36,
+        "median": 60.0,
+        "p90": 69.0,
+        "p95": 72.0
+      }
+    },
+    "char_stats": {
+      "prompt": {
+        "count": 450,
+        "min": 66.0,
+        "max": 156.0,
+        "mean": 91.35,
+        "median": 87.0,
+        "p90": 125.0,
+        "p95": 132.0
+      },
+      "chosen": {
+        "count": 450,
+        "min": 202.0,
+        "max": 299.0,
+        "mean": 249.18,
+        "median": 244.0,
+        "p90": 297.0,
+        "p95": 299.0
+      },
+      "rejected": {
+        "count": 450,
+        "min": 78.0,
+        "max": 124.0,
+        "mean": 96.44,
+        "median": 97.0,
+        "p90": 114.0,
+        "p95": 124.0
+      }
+    }
+  },
+  "eval": {
+    "file_name": "eval.jsonl",
+    "total_samples": 50,
+    "invalid_json_rows": 0,
+    "missing_key_rows": 0,
+    "duplicate_prompts": 7,
+    "identical_chosen_rejected": 0,
+    "length_bias": {
+      "chosen_longer": 50,
+      "rejected_longer": 0,
+      "equal_length": 0,
+      "chosen_longer_pct": 100.0
+    },
+    "lexical_metrics": {
+      "chosen_type_token_ratio": 0.1582,
+      "rejected_type_token_ratio": 0.1837,
+      "mean_jaccard_similarity": 0.0711
+    },
+    "token_stats": {
+      "prompt": {
+        "count": 50,
+        "min": 12.0,
+        "max": 28.0,
+        "mean": 17.6,
+        "median": 16.5,
+        "p90": 23.0,
+        "p95": 25.0
+      },
+      "chosen": {
+        "count": 50,
+        "min": 34.0,
+        "max": 52.0,
+        "mean": 43.48,
+        "median": 43.5,
+        "p90": 50.0,
+        "p95": 50.0
+      },
+      "rejected": {
+        "count": 50,
+        "min": 13.0,
+        "max": 25.0,
+        "mean": 18.18,
+        "median": 18.0,
+        "p90": 21.0,
+        "p95": 25.0
+      },
+      "total_pair_seq_length": {
+        "count": 50,
+        "min": 48.0,
+        "max": 74.0,
+        "mean": 61.08,
+        "median": 62.0,
+        "p90": 69.0,
+        "p95": 71.0
+      }
+    },
+    "char_stats": {
+      "prompt": {
+        "count": 50,
+        "min": 66.0,
+        "max": 136.0,
+        "mean": 90.74,
+        "median": 85.0,
+        "p90": 126.0,
+        "p95": 134.0
+      },
+      "chosen": {
+        "count": 50,
+        "min": 202.0,
+        "max": 299.0,
+        "mean": 251.82,
+        "median": 244.0,
+        "p90": 297.0,
+        "p95": 297.0
+      },
+      "rejected": {
+        "count": 50,
+        "min": 78.0,
+        "max": 124.0,
+        "mean": 97.52,
+        "median": 95.0,
+        "p90": 114.0,
+        "p95": 124.0
+      }
+    }
+  }
+}

@@ -237,6 +237,7 @@ def main():
     parser.add_argument("--eval-file", type=str, default="eval.jsonl", help="Eval dataset filename")
     parser.add_argument("--tokenizer", type=str, default=None, help="HuggingFace model ID or tokenizer path")
     parser.add_argument("--output-json", type=str, default=None, help="Path to write JSON inspection report")
+    parser.add_argument("--output-log", type=str, default=None, help="Path to write text inspection report")
     args = parser.parse_args()
 
     data_dir = Path(args.data_dir)
@@ -246,6 +247,8 @@ def main():
     tokenizer = get_tokenizer(args.tokenizer)
 
     results = {}
+    report_lines = []
+
     if train_path.exists():
         logger.info(f"Inspecting training dataset: {train_path}")
         results["train"] = analyze_file(train_path, tokenizer=tokenizer)
@@ -264,8 +267,32 @@ def main():
         out_p = Path(args.output_json)
         out_p.parent.mkdir(parents=True, exist_ok=True)
         with open(out_p, "w", encoding="utf-8") as f:
-            json.dump(results, f, indent=2)
+            json.dump(results, f, indent=2, ensure_ascii=False)
         logger.info(f"Saved inspection summary JSON to: {out_p}")
+
+    if args.output_log:
+        out_log = Path(args.output_log)
+        out_log.parent.mkdir(parents=True, exist_ok=True)
+        with open(out_log, "w", encoding="utf-8") as f:
+            f.write("=" * 78 + "\n")
+            f.write(" DATASET INSPECTION REPORT (RUSSIAN SUPPORT TICKET DPO CORPUS)\n")
+            f.write("=" * 78 + "\n\n")
+            for split, stats in results.items():
+                f.write(f"--- SPLIT: {split.upper()} ---\n")
+                f.write(f"Total Valid Pairs:     {stats['total_samples']}\n")
+                f.write(f"Invalid Rows / Errors: {stats['invalid_json_rows']}\n")
+                f.write(f"Missing Schema Keys:   {stats['missing_key_rows']}\n")
+                f.write(f"Duplicate Prompts:     {stats['duplicate_prompts']}\n")
+                f.write(f"Identical Pairs:       {stats['identical_chosen_rejected']}\n")
+                f.write("TOKEN LENGTH DISTRIBUTION:\n")
+                for field in ["prompt", "chosen", "rejected"]:
+                    ts = stats["token_stats"][field]
+                    f.write(f"  * {field.capitalize():<12}: min={ts['min']}, max={ts['max']}, mean={ts['mean']}, median={ts['median']}, p95={ts['p95']}\n")
+                lb = stats["length_bias"]
+                f.write(f"Length Bias: Chosen longer in {lb['chosen_longer']} ({lb['chosen_longer_pct']}%)\n")
+                lex = stats["lexical_metrics"]
+                f.write(f"Lexical Diversity: Chosen TTR={lex['chosen_type_token_ratio']}, Rejected TTR={lex['rejected_type_token_ratio']}, Jaccard={lex['mean_jaccard_similarity']}\n\n")
+        logger.info(f"Saved inspection log to: {out_log}")
 
 
 if __name__ == "__main__":
