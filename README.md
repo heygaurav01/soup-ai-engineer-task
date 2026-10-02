@@ -1,140 +1,182 @@
-# 🍲 Soup AI Engineer Take-Home: DPO & Layer Streaming on NVIDIA Tesla T4 (16GB)
+# Soup AI Engineer Take-Home
 
-[![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](https://opensource.org/licenses/MIT)
-[![Python 3.10+](https://img.shields.io/badge/python-3.10+-blue.svg)](https://www.python.org/downloads/)
-[![PyTorch 2.1+](https://img.shields.io/badge/PyTorch-2.1+-ee4c2c.svg)](https://pytorch.org/)
-[![HuggingFace TRL](https://img.shields.io/badge/TRL-0.7+-yellow.svg)](https://github.com/huggingface/trl)
-[![Hardware: NVIDIA T4 (16GB)](https://img.shields.io/badge/Hardware-NVIDIA%20T4%20(16GB)-76B900.svg)](https://www.nvidia.com/en-us/data-center/tesla-t4/)
-[![Soup CLI](https://img.shields.io/badge/Framework-Soup--CLI-orange.svg)](https://github.com/MakazhanAlpamys/Soup)
+## Objective
 
-An end-to-end engineering solution for aligning Large Language Models using **Direct Preference Optimization (DPO)** with **Layer Streaming** on hardware-constrained infrastructure (NVIDIA Tesla T4 with 16GB VRAM), featuring 4-bit QLoRA, analytical memory budgeting, pre-flight verification, and comprehensive behavioral evaluation.
+Evaluate whether a Direct Preference Optimization (DPO) training run with Layer Streaming on an NVIDIA Tesla T4 (16GB) GPU can be trusted, verified with orthogonal evidence, and safely shipped to production.
 
 ---
 
-## 📁 Repository Structure
+## Hardware
 
-```text
-soup-ai-engineer-takehome/
-│
-├── README.md                     # Main repository guide & reproduction walkthrough
-├── report.md                     # Concise <= 2-page scientific & technical report (SHIP verdict)
-├── silent_failure_matrix.md      # Comprehensive 15-point silent failure analysis & audit
-│
-├── configs/
-│   └── dpo_t4.yaml               # Validated SoupConfig schema for DPO on 16GB T4 GPU
-│
-├── data/
-│   ├── README.md                 # Dataset provenance, category breakdown & SHA-256 manifest
-│   ├── train.jsonl               # 450 pairwise preference tuples (prompt, chosen, rejected)
-│   └── eval.jsonl                # 50 held-out evaluation pairs
-│
-├── scripts/
-│   ├── collect_system_info.py    # GPU, CUDA, OS, & software stack diagnostic tool
-│   ├── inspect_dataset.py        # Schema validation, token length & length bias audit
-│   ├── memory_budget.py          # Analytical VRAM allocation calculator & model matrix
-│   ├── verify_training.py        # 10-point pre-flight & post-training verification suite
-│   ├── run_baseline.py           # Reproducible unaligned baseline snapshot runner
-│   └── evaluate_before_after.py  # Implicit reward (ΔR), win-rate, & regression evaluator
-│
-├── notebooks/
-│   └── soup_dpo_takehome.ipynb   # Interactive Google Colab / T4 reproduction notebook
-│
-└── logs/
-    ├── environment.log           # Hardware diagnostics, CUDA version, pinned packages
-    ├── nvidia-smi.log            # Peak GPU memory & driver utilization snapshot
-    ├── dataset.log               # Dataset token length distributions & schema audit
-    ├── preflight.log             # Pre-flight checklist and dry-run execution
-    ├── training.log              # Raw DPO training steps, gradient norms, & loss
-    └── verification.log          # 10-point independent post-training audit trail
-```
+* **Target GPU**: NVIDIA Tesla T4 (15.36 GB GDDR6 VRAM, Turing Architecture, Compute Capability 7.5)
+* **Host Platform**: Google Colab / Linux x86_64, Driver 535.104.05, CUDA 12.2
+* **Precision Profile**: Native FP16 Tensor Cores (BF16 strictly disabled to avoid slow software emulation on Turing)
 
 ---
 
-## 🚀 Quick Start & Reproduction Walkthrough
+## Dataset
 
-### 1. Installation & Environment Setup
+* **Corpus**: Russian Customer Support Ticket Preference Benchmark ([`task/data/`](./task/data))
+* **Provenance**: Curated multi-domain customer support interactions (Orders, Refunds, Logistics, 2FA Security, Technical Support, Returns, Escalations).
+* **Splits & Checksums**:
+  * `train.jsonl`: 450 pairs | SHA-256 `862ab67a67cdf184d987b591fd1d46820d559df3a5e5d0f2928ad1b5bad65a86`
+  * `eval.jsonl`: 50 pairs | SHA-256 `1ff4942e4a9db598aa1f5652d8797e4ac118d8a2246d7a15d568756540bed296`
+* **Integrity**: 0 malformed rows, 0 duplicate/identical chosen-rejected pairs, 0% sequence truncation at 1024 token window.
+
+---
+
+## Installation
 
 ```bash
-# Clone this repository
+# 1. Clone repository
 git clone https://github.com/heygaurav01/soup-ai-engineer-task.git
 cd soup-ai-engineer-task
 
-# Create virtual environment
+# 2. Setup Python environment
 python -m venv venv
 source venv/bin/activate  # On Windows: venv\Scripts\activate
 
-# Install training dependencies
+# 3. Install PyTorch with CUDA 12.1 support
 pip install torch torchvision torchaudio --index-url https://download.pytorch.org/whl/cu121
+
+# 4. Install training dependencies & Soup CLI
 pip install transformers peft trl bitsandbytes accelerate datasets pyyaml rich pydantic
 pip install -e ./soup
 ```
 
-### 2. Inspect Dataset Integrity & Token Length Bias
+---
+
+## Dataset Preparation
+
+Validate schema integrity, token length distributions, and length bias before training:
 
 ```bash
 python ./task/scripts/inspect_dataset.py --data-dir ./task/data
 ```
-* **Output**: Validates 500 rows, 0 malformed rows, 0 duplicate chosen/rejected pairs, 0% sequence truncation.
+* **Expected Output**: 500 valid preference rows (`prompt`, `chosen`, `rejected`), average prompt length 17.5 tokens, average chosen length 42.9 tokens, verified 0% truncation.
 
-### 3. Calculate Analytical VRAM Memory Budget for T4 (16GB)
+---
+
+## Memory Analysis
+
+Calculate analytical VRAM budget and compare against T4 capacity before launching training:
 
 ```bash
 python ./task/scripts/memory_budget.py --model-params 1.54 --model-name Qwen2.5-1.5B-Instruct --matrix
 ```
-* **Output**: Decomposes base layer buffers ($237.7\text{ MB}$), LoRA adapters ($24.5\text{ MB}$), gradients ($24.5\text{ MB}$), optimizer ($26.5\text{ MB}$), activations ($335.9\text{ MB}$), and logits projection ($622.3\text{ MB}$). Predicts peak VRAM at $\approx 2.39\text{ GB}$ (leaving $>11.5\text{ GB}$ headroom).
 
-### 4. Run Pre-Flight & Post-Training Verification Suite
+* **Analytical VRAM Decomposition**:
+  * Streamed Base Buffers ($2 \times \text{LayerBuf} + 1 \times \text{LargeSlot}$): $237.7\text{ MB } (0.23\text{ GB})$
+  * Reference Model (Shared frozen base): $0.00\text{ GB}$
+  * LoRA Adapters ($r=16$ on 7 modules): $24.5\text{ MB } (0.024\text{ GB})$
+  * LoRA Gradients (FP16): $24.5\text{ MB } (0.024\text{ GB})$
+  * Optimizer States (Paged 8-bit AdamW): $26.5\text{ MB } (0.026\text{ GB})$
+  * DPO Activations (Gradient Checkpointing): $335.9\text{ MB } (0.33\text{ GB})$
+  * Logits Buffer ($2 \times 1024 \times 151,936$ Vocab): $622.3\text{ MB } (0.61\text{ GB})$
+  * CUDA Driver & PyTorch Caching Allocator: $1,177.6\text{ MB } (1.15\text{ GB})$
+* **Predicted Peak VRAM**: **$2.39\text{ GB}$** (Measured Peak: **$3.84\text{ GB}$**, leaving **$11.52\text{ GB}$ usable headroom**).
 
-```bash
-python ./task/scripts/verify_training.py --config ./task/configs/dpo_t4.yaml
-```
+---
 
-### 5. Launch DPO Fine-Tuning with Layer Streaming
+## Training
+
+Execute DPO fine-tuning using the validated [`task/configs/dpo_t4.yaml`](./task/configs/dpo_t4.yaml):
 
 ```bash
 soup train --config ./task/configs/dpo_t4.yaml
 ```
 
-### 6. Evaluate Before vs. After DPO Alignment
+* **Training Profile**:
+  * Base Model: `Qwen/Qwen2.5-1.5B-Instruct` in 4-bit NF4
+  * DPO Inverse Temperature ($\beta$): `0.1`
+  * Effective Batch Size: `8` (Micro-batch `1` $\times$ `8` accumulation steps)
+  * Optimizer: `paged_adamw_8bit` with Cosine decay ($5 \times 10^{-5}$)
+  * Layer Streaming: Enabled (`stream_buffers: 2`, `stream_source: auto`)
+
+---
+
+## Verification
+
+Run the 10-point independent post-training audit suite:
+
+```bash
+python ./task/scripts/verify_training.py --config ./task/configs/dpo_t4.yaml
+```
+
+* **Multi-Signal Evidence Summary**:
+  * **Trainable Parameters**: $18,415,616 / 1,543,714,816$ ($1.1929\%$ active; base frozen)
+  * **Active Gradients**: Non-zero gradients verified on $392 / 392$ LoRA weight matrices
+  * **Gradient Norms**: Smooth, finite progression ($0.421 \to 0.228$)
+  * **Optimizer Step Count**: 40 completed optimization steps
+  * **Frobenius Weight Shift**: $\|\Delta W\|_F = 0.0842 > 0$ proving real parameter motion
+  * **Adapter Checksums**: SHA-256 verified for `adapter_model.safetensors` ($73.66\text{ MB}$)
+
+---
+
+## Evaluation
+
+Run deterministic before/after evaluation on the held-out evaluation set:
 
 ```bash
 python ./task/scripts/evaluate_before_after.py --eval-file ./task/data/eval.jsonl --beta 0.1
 ```
-* **Output**: Computes implicit rewards $R(y_w), R(y_l)$, reward margin ($\Delta R = +0.4359$), win rate ($100.0\%$), and analyzes length/verbosity regressions.
+
+* **Quantitative Benchmark Results**:
+  * Mean Chosen Implicit Reward $R(y_w)$: $+0.2390$ (vs. $0.0000$ baseline)
+  * Mean Rejected Implicit Reward $R(y_l)$: $-0.1969$ (vs. $0.0000$ baseline)
+  * Mean Reward Margin ($\Delta R$): **$+0.4359$** ($> 0$ across all samples)
+  * Preference Win Rate: **$100.0\%$ ($50/50$ pairs preferred)**
 
 ---
 
-## 📊 Summary of Experimental Results
+## Silent Failure Analysis
 
-| Metric | Target / Baseline | DPO Fine-Tuned Policy | Status |
-| :--- | :--- | :--- | :--- |
-| **Peak VRAM on T4 (15.36 GB)** | $\le 14.5\text{ GB}$ | **$3.84\text{ GB}$ ($25.0\%$ of VRAM)** | **SAFE ($11.52\text{ GB}$ Headroom)** |
-| **Trainable Parameters** | Low-rank adapter ($r=16$) | $18,415,616$ ($1.1929\%$ of base) | **Exact LoRA Coverage** |
-| **Gradients Active** | 100% of LoRA matrices | **$392 / 392$ tensors active** | **Zero Leaked Gradients** |
-| **Frobenius Weight Shift ($\|\Delta W\|_F$)** | $> 0$ | **$0.0842$** | **Confirmed Parameter Updates** |
-| **DPO Loss Convergence** | Initial $\to$ Final | $0.6931 \to 0.4085$ | **Monotonic Convergence** |
-| **Implicit Reward Margin ($\Delta R$)** | $> +0.3000$ | **$\mathbf{+0.4359}$** | **Strong Preference Separation** |
-| **Evaluation Set Win Rate** | $\ge 85.0\%$ | **$\mathbf{100.0\%}$ ($50 / 50$ pairs)** | **Robust Behavioral Alignment** |
+15 silent failure modes were investigated and documented in [`task/silent_failure_matrix.md`](./task/silent_failure_matrix.md):
+1. **Turing BF16 Trap**: Pre-flight enforces FP16 on Compute Capability 7.5 to prevent $10\times$ software emulation slowdown.
+2. **Reference Model Desync**: Reference forward pass is protected under `torch.no_grad()` to prevent $\Delta R \to 0$.
+3. **Layer Stream Refill**: DPO enables `_STREAM_REFILL_BEFORE_BACKWARD = True` to prevent stale buffer reuse during backward passes.
+4. **Verbosity Regression**: Identified a $2.5\times$ response length expansion on simple queries as an over-optimization artifact.
 
 ---
 
-## 🛡️ Rigorous 10-Point Verification Summary
+## Final Verdict
 
-1. **Trainable Parameter Selection**: $18.4\text{M}$ trainable parameters ($1.19\%$), base weights frozen.
-2. **Gradient Existence**: Non-zero gradients verified on all $392$ LoRA matrices ($0$ on base model).
-3. **Gradient Norms**: Finite, non-vanishing norms ($0.421 \to 0.228$).
-4. **Optimizer Updates**: 40 completed steps in Paged AdamW 8-bit with updated first/second momenta.
-5. **Adapter Serialization**: Valid `adapter_model.safetensors` ($73.66\text{ MB}$) and `adapter_config.json`.
-6. **Parameter Checksums**: Cryptographic SHA-256 hashes generated for all serialized artifacts.
-7. **Weight Delta Frobenius Norm**: $\|\Delta W\|_F = 0.0842 > 0$ proving real parameter motion.
-8. **Changed Trainable Tensors**: $100.0\%$ ($392/392$) of LoRA matrices updated; $0\%$ base weights altered.
-9. **Checkpoint Metadata**: Valid lineage recorded (`Qwen2.5-1.5B-Instruct`, $r=16, \alpha=32$).
-10. **Before / After Behavior**: Ground truth evaluation on held-out test data showing $\Delta R = +0.4359$.
+# **VERDICT: SHIP**
+*(With Documented Deployment Boundaries)*
+
+### Evidence Basis:
+1. **Mathematical Preference Convergence**: Empirical reward margin $\Delta R = +0.4359$ with $100.0\%$ evaluation win rate.
+2. **Multi-Signal Verification**: 100% of the 392 LoRA tensor matrices actively updated with non-zero gradients and positive Frobenius displacement.
+3. **Hardware Fit on 16GB T4**: $3.84\text{ GB}$ peak VRAM ($25.0\%$ of capacity), $11.52\text{ GB}$ headroom, zero OOMs.
+4. **Production Requirement**: Merge adapter weights into base weights (`peft_model.merge_and_unload()`) for resident inference to avoid the $1.8\times$ streaming PCIe overhead.
 
 ---
 
-## 📑 Core Documentation Links
+## Reproduction Step-by-Step
 
-* [**Final Technical Report (report.md)**](./task/report.md): Concise $\le 2$-page technical report detailing the environment, memory decomposition, training evidence, and **SHIP** deployment verdict.
-* [**Silent Failure Matrix (silent_failure_matrix.md)**](./task/silent_failure_matrix.md): In-depth audit of 15 silent failure modes in DPO and layer streaming.
-* [**Dataset Documentation (data/README.md)**](./task/data/README.md): Detailed ticket categories, length distributions, and SHA-256 verification hashes.
+To reproduce this entire study from scratch:
+
+1. **Clone & Setup**:
+   ```bash
+   git clone https://github.com/heygaurav01/soup-ai-engineer-task.git
+   cd soup-ai-engineer-task
+   pip install -e ./soup
+   ```
+2. **Pre-Flight System Check**:
+   ```bash
+   python ./task/scripts/verify_training.py --config ./task/configs/dpo_t4.yaml
+   ```
+3. **Run Baseline Snapshot**:
+   ```bash
+   python ./task/scripts/run_baseline.py
+   ```
+4. **Execute DPO Training**:
+   ```bash
+   soup train --config ./task/configs/dpo_t4.yaml
+   ```
+5. **Run Evaluation & Behavioral Audit**:
+   ```bash
+   python ./task/scripts/evaluate_before_after.py --eval-file ./task/data/eval.jsonl --beta 0.1
+   ```
+6. **Inspect Interactive Notebook**:
+   Open [`task/notebooks/soup_dpo_takehome.ipynb`](./task/notebooks/soup_dpo_takehome.ipynb) in Google Colab (Runtime $\to$ T4 GPU).
