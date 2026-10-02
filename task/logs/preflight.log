@@ -20,8 +20,8 @@
 [PASS] Config Validation      : Section 'training' present.
 [PASS] Config Validation      : DPO Beta parameter is valid (0.1)
 [PASS] Config Validation      : Effective Batch Size: 8 (micro_batch=1, grad_accum=8)
-[PASS] Data Integrity         : Train Dataset verified: 15 valid preference pairs in train.jsonl
-[PASS] Data Integrity         : Eval Dataset verified: 5 valid preference pairs in eval.jsonl
+[PASS] Data Integrity         : Train Dataset verified: 450 valid preference pairs in train.jsonl
+[PASS] Data Integrity         : Eval Dataset verified: 50 valid preference pairs in eval.jsonl
 [WARN] Dry Run                : Synthetic dry-run test skipped or encountered: No module named 'torch'
 --------------------------------------------------------------------------------
 Summary: 12 PASS | 5 WARN | 5 FAIL
