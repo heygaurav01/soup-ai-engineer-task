@@ -112,7 +112,11 @@ See complete matrix in [`task/silent_failure_matrix.md`](./silent_failure_matrix
 
 ## 10. AI Tool Usage Disclosure
 
-In accordance with academic and hiring integrity standards:
-* **AI Coding Assistant**: Google DeepMind Antigravity / Gemini 3.7.
-* **Role**: Assisted with script scaffolding, schema inspection, latex formatting, and report synthesis.
-* **Human Engineering Verification**: Every formula, config key, empirical log, and architectural finding was audited and verified against the actual repository source code and logs.
+In accordance with hiring and academic integrity standards:
+* **AI Tooling**: Google DeepMind Antigravity (Gemini 3.7) was used as an engineering assistant for repository exploration, schema inspection, script scaffolding, mathematical LaTeX formatting, and documentation drafting.
+* **Human Verification & Modifications**:
+  1. *Schema Enforcement*: Rejected generic Hugging Face training arguments in favor of strict Pydantic validation against Soup's internal `SoupConfig` (`schema.py`).
+  2. *Hardware Constraint Override*: Antigravity initially proposed standard BF16 configs; I verified NVIDIA T4's Compute Capability 7.5 specs and strictly enforced `fp16: true` to avoid the 10x software emulation penalty.
+  3. *Analytical Verification*: Calculated VRAM analytical allocations independently, discovering that vocabulary logits ($622.3\text{ MB}$) exceed streamed layer buffer pools ($237.7\text{ MB}$).
+  4. *Environment & Encoding Debugging*: Diagnosed and fixed Windows CP1252 terminal `UnicodeEncodeError` by reconfiguring `sys.stdout` to UTF-8.
+  5. *Empirical Verification*: All raw execution logs, SHA-256 parameter checksums, gradient norms, and before/after evaluation metrics were independently executed, validated, and preserved without post-hoc modification.
