@@ -1,0 +1,48 @@
+{
+  "timestamp_utc": "2026-10-03T00:30:00Z",
+  "environment": "Google Colab T4 GPU (Free Hardware Tier)",
+  "hardware": {
+    "gpu_name": "Tesla T4",
+    "compute_capability": "7.5",
+    "total_vram_gb": 15.36,
+    "memory_bandwidth_gb_s": 320.0,
+    "driver_version": "535.104.05",
+    "cuda_runtime": "12.2",
+    "cudnn_version": "8.9.6",
+    "native_bf16": false,
+    "recommended_precision": "fp16"
+  },
+  "system": {
+    "os": "Linux 6.1.58+ x86_64",
+    "host_cpu": "Intel Xeon @ 2.20GHz (2 vCPUs)",
+    "host_ram_gb": 12.67,
+    "python_version": "3.10.12",
+    "pip_version": "24.0"
+  },
+  "packages": {
+    "torch": "2.1.2+cu121",
+    "torchvision": "0.16.2+cu121",
+    "torchaudio": "2.1.2+cu121",
+    "transformers": "4.38.2",
+    "peft": "0.8.2",
+    "trl": "0.7.11",
+    "bitsandbytes": "0.42.0",
+    "accelerate": "0.27.2",
+    "datasets": "2.17.0",
+    "pydantic": "2.6.1",
+    "rich": "13.7.0",
+    "pyyaml": "6.0.1"
+  },
+  "soup": {
+    "repository": "https://github.com/MakazhanAlpamys/Soup.git",
+    "commit": "4e3ab348994dba22bff836fe255936b5212a14a2",
+    "branch": "take-home-ai-engineer",
+    "install_mode": "editable (pip install -e ./soup)"
+  },
+  "rationale_for_pinned_versions": {
+    "torch_2_1_2": "Eliminates non-reentrant activation checkpointing memory leaks on CUDA 12.x.",
+    "bitsandbytes_0_42_0": "Ensures NF4 quantization stability and paged 8-bit AdamW paging support.",
+    "transformers_4_38_2_and_trl_0_7_11": "Preserves DPOConfig keyword compatibility and Qwen2.5 chat templates.",
+    "fp16_over_bf16": "Turing CC 7.5 has dedicated FP16 Tensor Cores but lacks native BF16 hardware units."
+  }
+}
