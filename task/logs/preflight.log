@@ -1,0 +1,29 @@
+================================================================================
+ PRE-FLIGHT VERIFICATION CHECKLIST FOR DPO TRAINING
+================================================================================
+[PASS] Environment            : Python version 3.12.6 (>= 3.9)
+[FAIL] Dependencies           : Missing required dependency 'torch'
+[FAIL] Dependencies           : Missing required dependency 'transformers'
+[FAIL] Dependencies           : Missing required dependency 'peft'
+[FAIL] Dependencies           : Missing required dependency 'trl'
+[PASS] Dependencies           : yaml installed (v6.0.2)
+[WARN] Dependencies (Opt)     : Optional package 'bitsandbytes' not found.
+[WARN] Dependencies (Opt)     : Optional package 'accelerate' not found.
+[WARN] Dependencies (Opt)     : Optional package 'datasets' not found.
+[WARN] Dependencies (Opt)     : Optional package 'rich' not found.
+[PASS] Dependencies (Opt)     : pydantic is available (v2.12.5)
+[FAIL] Hardware               : Error checking CUDA: No module named 'torch'
+[PASS] Configuration          : Config loaded successfully from dpo_t4.yaml
+[PASS] Config Validation      : Section 'base' present.
+[PASS] Config Validation      : Section 'task' present.
+[PASS] Config Validation      : Section 'data' present.
+[PASS] Config Validation      : Section 'training' present.
+[PASS] Config Validation      : DPO Beta parameter is valid (0.1)
+[PASS] Config Validation      : Effective Batch Size: 8 (micro_batch=1, grad_accum=8)
+[PASS] Data Integrity         : Train Dataset verified: 15 valid preference pairs in train.jsonl
+[PASS] Data Integrity         : Eval Dataset verified: 5 valid preference pairs in eval.jsonl
+[WARN] Dry Run                : Synthetic dry-run test skipped or encountered: No module named 'torch'
+--------------------------------------------------------------------------------
+Summary: 12 PASS | 5 WARN | 5 FAIL
+OVERALL STATUS: BLOCKED (5 FAILS)
+================================================================================

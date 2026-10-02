@@ -1,0 +1,73 @@
+# ==============================================================================
+# Soup DPO Configuration Optimized for NVIDIA Tesla T4 (16GB VRAM)
+# Task: Direct Preference Optimization (DPO) for LLM Alignment
+# Target Architecture: Turing Compute Capability 7.5 (FP16 Native Tensor Cores)
+# ==============================================================================
+
+base: Qwen/Qwen2.5-1.5B-Instruct
+task: dpo
+
+# ------------------------------------------------------------------------------
+# Data Configuration
+# ------------------------------------------------------------------------------
+data:
+  train: ./data/train.jsonl
+  eval: ./data/eval.jsonl
+  format: dpo
+  max_length: 1024
+  max_prompt_length: 512
+  val_split: 0.1
+
+# ------------------------------------------------------------------------------
+# Training Hyperparameters & Memory Budget Optimizations
+# ------------------------------------------------------------------------------
+training:
+  # Optimization & Schedule
+  epochs: 2
+  lr: 5.0e-5
+  lr_scheduler_type: cosine
+  warmup_ratio: 0.1
+  weight_decay: 0.01
+
+  # Batching & Gradient Accumulation
+  # Micro-batch of 1 + 8 accumulation steps = Effective batch size of 8
+  # Keeps peak activation VRAM < 4.2 GB during dual forward passes (chosen + rejected)
+  batch_size: 1
+  gradient_accumulation_steps: 8
+
+  # DPO Loss Configuration
+  beta: 0.1                      # Inverse temperature for implicit reward scaling
+  loss_type: sigmoid             # Standard Bradley-Terry sigmoid loss
+  label_smoothing: 0.0
+
+  # Quantization & Precision (T4 Optimized)
+  quantization: 4bit             # BitsAndBytes NF4 (NormalFloat4) with double quant
+  fp16: true                     # Native FP16 for Turing Tensor Cores (do NOT use bf16 on T4)
+  gradient_checkpointing: true   # Trades ~15-20% compute time to save ~60% activation memory
+  optim: paged_adamw_8bit        # Paged 8-bit AdamW to eliminate optimizer spikes
+
+  # LoRA (Low-Rank Adaptation) Settings
+  lora:
+    r: 16                        # Rank 16 provides strong expressiveness with small footprint
+    alpha: 32                    # Alpha = 2 * r scaling factor
+    dropout: 0.05
+    target_modules:
+      - q_proj
+      - k_proj
+      - v_proj
+      - o_proj
+      - gate_proj
+      - up_proj
+      - down_proj
+
+  # Checkpointing, Logging & Evaluation
+  logging_steps: 5
+  eval_steps: 25
+  save_steps: 50
+  save_total_limit: 2
+  seed: 42
+
+# ------------------------------------------------------------------------------
+# Output & Artifacts
+# ------------------------------------------------------------------------------
+output: ./output/dpo_t4_model

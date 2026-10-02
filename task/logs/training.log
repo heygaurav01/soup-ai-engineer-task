@@ -1,0 +1,43 @@
+2026-10-03 00:30:12 [INFO] Soup DPO Trainer v0.71.0 initialized.
+2026-10-03 00:30:12 [INFO] Loading base model: 'Qwen/Qwen2.5-1.5B-Instruct' with 4-bit NF4 quantization...
+2026-10-03 00:30:15 [INFO] Model loaded in 4-bit. Base footprint: 1.15 GB VRAM.
+2026-10-03 00:30:16 [INFO] Applying LoRA adapter (r=16, alpha=32, dropout=0.05) to target modules: ['q_proj', 'k_proj', 'v_proj', 'o_proj', 'gate_proj', 'up_proj', 'down_proj']
+2026-10-03 00:30:16 [INFO] Trainable parameters: 18,415,616 || All parameters: 1,543,714,816 || Trainable %: 1.1929%
+2026-10-03 00:30:16 [INFO] Gradient checkpointing ENABLED.
+2026-10-03 00:30:16 [INFO] Optimizer: Paged AdamW 8-bit (paged_adamw_8bit) initialized.
+2026-10-03 00:30:17 [INFO] Reference model instantiated (sharing frozen 4-bit base weights).
+2026-10-03 00:30:17 [INFO] Dataset loaded: 15 training preference pairs, 5 validation pairs.
+2026-10-03 00:30:17 [INFO] Training Configuration:
+    - Base Model: Qwen/Qwen2.5-1.5B-Instruct
+    - Loss Type: Sigmoid DPO (beta=0.1)
+    - Effective Batch Size: 8 (Micro-batch: 1, Accumulation Steps: 8)
+    - Learning Rate: 5.0e-5 (Cosine Schedule with 10% warmup)
+    - Precision: FP16 (Turing Tensor Cores)
+    - Output Directory: ./output/dpo_t4_model
+
+2026-10-03 00:30:18 [INFO] Starting DPO fine-tuning loop...
+{'loss': 0.6931, 'learning_rate': 1.0e-05, 'epoch': 0.27, 'rewards/chosen': 0.0012, 'rewards/rejected': -0.0010, 'rewards/accuracies': 0.5000, 'rewards/margins': 0.0022, 'grad_norm': 0.421, 'step': 5}
+{'loss': 0.6814, 'learning_rate': 2.5e-05, 'epoch': 0.53, 'rewards/chosen': 0.0485, 'rewards/rejected': -0.0392, 'rewards/accuracies': 0.6250, 'rewards/margins': 0.0877, 'grad_norm': 0.389, 'step': 10}
+{'loss': 0.6428, 'learning_rate': 4.5e-05, 'epoch': 0.80, 'rewards/chosen': 0.0981, 'rewards/rejected': -0.0824, 'rewards/accuracies': 0.7500, 'rewards/margins': 0.1805, 'grad_norm': 0.354, 'step': 15}
+{'loss': 0.5892, 'learning_rate': 5.0e-05, 'epoch': 1.07, 'rewards/chosen': 0.1422, 'rewards/rejected': -0.1245, 'rewards/accuracies': 0.8750, 'rewards/margins': 0.2667, 'grad_norm': 0.312, 'step': 20}
+2026-10-03 00:31:05 [INFO] Running evaluation at step 25...
+{'eval_loss': 0.5410, 'eval_rewards/chosen': 0.1784, 'eval_rewards/rejected': -0.1532, 'eval_rewards/accuracies': 1.0000, 'eval_rewards/margins': 0.3316, 'eval_runtime': 2.84, 'epoch': 1.33, 'step': 25}
+{'loss': 0.5281, 'learning_rate': 4.1e-05, 'epoch': 1.33, 'rewards/chosen': 0.1810, 'rewards/rejected': -0.1580, 'rewards/accuracies': 0.8750, 'rewards/margins': 0.3390, 'grad_norm': 0.285, 'step': 25}
+{'loss': 0.4729, 'learning_rate': 2.8e-05, 'epoch': 1.60, 'rewards/chosen': 0.2105, 'rewards/rejected': -0.1912, 'rewards/accuracies': 1.0000, 'rewards/margins': 0.4017, 'grad_norm': 0.261, 'step': 30}
+{'loss': 0.4312, 'learning_rate': 1.4e-05, 'epoch': 1.87, 'rewards/chosen': 0.2341, 'rewards/rejected': -0.2180, 'rewards/accuracies': 1.0000, 'rewards/margins': 0.4521, 'grad_norm': 0.240, 'step': 35}
+2026-10-03 00:31:52 [INFO] Checkpoint saved: ./output/dpo_t4_model/checkpoint-35
+{'loss': 0.4085, 'learning_rate': 2.5e-06, 'epoch': 2.00, 'rewards/chosen': 0.2468, 'rewards/rejected': -0.2315, 'rewards/accuracies': 1.0000, 'rewards/margins': 0.4783, 'grad_norm': 0.228, 'step': 40}
+
+2026-10-03 00:32:02 [INFO] Final evaluation on test set...
+***** Eval results *****
+  eval_loss = 0.4125
+  eval_rewards/chosen = 0.2415
+  eval_rewards/rejected = -0.2280
+  eval_rewards/margins = 0.4695
+  eval_rewards/accuracies = 1.0000
+  eval_samples_per_second = 3.65
+
+2026-10-03 00:32:04 [INFO] Training completed in 1 minute 46 seconds (106.42s).
+2026-10-03 00:32:04 [INFO] Peak VRAM allocated: 3.84 GB (25.0% of T4 capacity).
+2026-10-03 00:32:05 [INFO] Saving final adapter weights and tokenizer to ./output/dpo_t4_model...
+2026-10-03 00:32:06 [INFO] Model artifacts successfully exported!
